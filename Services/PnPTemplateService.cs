@@ -11,20 +11,22 @@ using OfficeDevPnP.Core.Framework.Provisioning.Connectors;
 using OfficeDevPnP.Core.Framework.Provisioning.Model;
 using OfficeDevPnP.Core.Framework.Provisioning.ObjectHandlers;
 using OfficeDevPnP.Core.Framework.Provisioning.Providers.Xml;
+using OrchestratedProvisioning.Model;
 
 namespace OrchestratedProvisioning.Services
 {
     class PnPTemplateService
     {
-        public string ApplyProvisioningTemplate (string templateText)
+        public QueueMessage ApplyProvisioningTemplate (QueueMessage request)
         {
-            var userName = ConfigurationManager.AppSettings[Constants.KEY_ProvisioningUser];
-            var rootSiteUrl = ConfigurationManager.AppSettings[Constants.KEY_RootSiteUrl];
-            string result = "";
+            var userName = ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningUser];
+            var rootSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_RootSiteUrl];
+
+            var result = request;
 
             using (var ctx = new ClientContext(rootSiteUrl))
             {
-                using (var password = GetSecureString(ConfigurationManager.AppSettings[Constants.KEY_ProvisioningPassword]))
+                using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
                 {
                     ctx.Credentials = new SharePointOnlineCredentials(userName, password);
                     ctx.RequestTimeout = Timeout.Infinite;
@@ -33,7 +35,9 @@ namespace OrchestratedProvisioning.Services
                     ctx.Load(web, w => w.Title);
                     ctx.ExecuteQueryRetry();
 
-                    result = web.Title;
+                    result.resultCode = QueueMessage.ResultCode.success;
+                    result.resultMessage = web.Title;
+                    result.displayName = web.Title;
                 }
             }
 

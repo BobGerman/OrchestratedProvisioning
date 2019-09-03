@@ -1,6 +1,6 @@
-﻿namespace OrchestratedProvisioning
+﻿namespace OrchestratedProvisioning.Model
 {
-    static public class Constants
+    static public class AppConstants
     {
         // Keys to settings in Azure or local.settings.json
         public const string KEY_Storage = "AzureWebJobsStorage";
