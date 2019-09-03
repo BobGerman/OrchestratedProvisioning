@@ -11,6 +11,7 @@ using OfficeDevPnP.Core.Framework.Provisioning.Connectors;
 using OfficeDevPnP.Core.Framework.Provisioning.Model;
 using OfficeDevPnP.Core.Framework.Provisioning.ObjectHandlers;
 using OfficeDevPnP.Core.Framework.Provisioning.Providers.Xml;
+using OfficeDevPnP.Core.Sites;
 using OrchestratedProvisioning.Model;
 
 namespace OrchestratedProvisioning.Services
@@ -31,13 +32,24 @@ namespace OrchestratedProvisioning.Services
                     ctx.Credentials = new SharePointOnlineCredentials(userName, password);
                     ctx.RequestTimeout = Timeout.Infinite;
 
-                    var web = ctx.Web;
-                    ctx.Load(web, w => w.Title);
-                    await ctx.ExecuteQueryRetryAsync();
+                    var siteContext = await ctx.CreateSiteAsync(
+                        new TeamSiteCollectionCreationInformation
+                        {
+                            Alias = "A0Test3", // Mandatory
+                            DisplayName = "displayName", // Mandatory
+                            Description = "description", // Optional
+//                            Classification = "classification", // Optional
+                            IsPublic = true, // Optional, default true
+                        });
+
+                    var web = siteContext.Web;
+                    siteContext.Load(web, w => w.Title, w => w.ServerRelativeUrl);
+                    await siteContext.ExecuteQueryRetryAsync();
 
                     result.resultCode = QueueMessage.ResultCode.success;
                     result.resultMessage = web.Title;
                     result.displayName = web.Title;
+                    result.requestId = web.ServerRelativeUrl;
                 }
             }
 
