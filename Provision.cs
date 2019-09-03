@@ -22,12 +22,20 @@ namespace OrchestratedProvisioning
             try
             {
                 var requestMessage = QueueMessage.NewFromJson(requestItem);
+                var reader = new TemplateReader();
+                if (string.IsNullOrEmpty(requestMessage.template))
+                {
+                    throw new Exception("Empty template name");
+                }
+                var templateString = reader.Read(requestMessage.template);
+
                 switch (requestMessage.command)
                 {
                     case QueueMessage.Command.provisionModernTeamSite:
                         {
                             var pnpProvisioningService = new PnPTemplateService();
                             completionMessage = pnpProvisioningService.ApplyProvisioningTemplate(requestMessage);
+                            completionMessage.resultMessage = templateString;
                             break;
                         }
                     default:

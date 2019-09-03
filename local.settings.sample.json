@@ -6,6 +6,8 @@
     "QueueStorage": "UseDevelopmentStorage=true",
     "ProvisioningServiceUser": "user@tenant.onmicrosoft.com",
     "ProvisioningServicePassword": "(password here)",
-    "RootSiteUrl": "https://(tenant).sharepoint.com/"
+    "RootSiteUrl": "https://(tenant).sharepoint.com/",
+    "TemplateSiteUrl": "https://(tenant).sharepoint.com/sites/Provisioning",
+    "TemplateLibrary": "Templates"
   }
 }
