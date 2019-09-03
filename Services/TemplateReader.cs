@@ -2,6 +2,7 @@
 using System.Security;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.SharePoint.Client;
 using OrchestratedProvisioning.Model;
 
@@ -9,7 +10,7 @@ namespace OrchestratedProvisioning.Services
 {
     class TemplateReader
     {
-        public string Read(string templateName)
+        public async Task<string> Read(string templateName)
         {
             var templateSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_TemplateSiteUrl];
             var templateLibrary = ConfigurationManager.AppSettings[AppConstants.KEY_TemplateLibrary];
@@ -25,12 +26,12 @@ namespace OrchestratedProvisioning.Services
 
                     List list = ctx.Web.Lists.GetByTitle(templateLibrary);
                     ctx.Load(list);
-                    ctx.ExecuteQueryRetry();
+                    await ctx.ExecuteQueryRetryAsync();
 
                     var folder = list.RootFolder;
                     var files = folder.Files;
                     ctx.Load(files);
-                    ctx.ExecuteQueryRetry();
+                    await ctx.ExecuteQueryRetryAsync();
 
                     foreach (var file in files)
                     {
@@ -40,7 +41,7 @@ namespace OrchestratedProvisioning.Services
                             using (System.IO.StreamReader sr = new System.IO.StreamReader(fileInformation.Stream))
                             {
                                 // Read the stream to a string, and write the string to the console.
-                                string line = sr.ReadToEnd();
+                                string line = await sr.ReadToEndAsync();
                                 resultBuilder.AppendLine(line);
                             }
                         }

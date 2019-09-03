@@ -17,7 +17,7 @@ namespace OrchestratedProvisioning.Services
 {
     class PnPTemplateService
     {
-        public QueueMessage ApplyProvisioningTemplate (QueueMessage request)
+        public async Task<QueueMessage> ApplyProvisioningTemplate (QueueMessage request)
         {
             var userName = ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningUser];
             var rootSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_RootSiteUrl];
@@ -33,7 +33,7 @@ namespace OrchestratedProvisioning.Services
 
                     var web = ctx.Web;
                     ctx.Load(web, w => w.Title);
-                    ctx.ExecuteQueryRetry();
+                    await ctx.ExecuteQueryRetryAsync();
 
                     result.resultCode = QueueMessage.ResultCode.success;
                     result.resultMessage = web.Title;

@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Host;
 using OrchestratedProvisioning.Model;
@@ -9,12 +10,12 @@ namespace OrchestratedProvisioning
     public static class Provision
     {
         [FunctionName("Provision")]
-        public static void Run(
+        public static async Task Run(
             // Input binding is the request queue
             [QueueTrigger(AppConstants.RequestQueueName, Connection = AppConstants.KEY_Storage)]string requestItem,
 
             // Output binding is the completion queue
-            [Queue(AppConstants.CompletionQueueName, Connection = AppConstants.KEY_Storage)] out string completionItem,
+            [Queue(AppConstants.CompletionQueueName, Connection = AppConstants.KEY_Storage)] IAsyncCollector<string> completionItem,
             TraceWriter log)
         {
             var completionMessage = new QueueMessage();
@@ -27,14 +28,14 @@ namespace OrchestratedProvisioning
                 {
                     throw new Exception("Empty template name");
                 }
-                var templateString = reader.Read(requestMessage.template);
+                var templateString = await reader.Read(requestMessage.template);
 
                 switch (requestMessage.command)
                 {
                     case QueueMessage.Command.provisionModernTeamSite:
                         {
                             var pnpProvisioningService = new PnPTemplateService();
-                            completionMessage = pnpProvisioningService.ApplyProvisioningTemplate(requestMessage);
+                            completionMessage = await pnpProvisioningService.ApplyProvisioningTemplate(requestMessage);
                             completionMessage.resultMessage = templateString;
                             break;
                         }
@@ -52,7 +53,7 @@ namespace OrchestratedProvisioning
                 completionMessage.resultMessage = ex.Message;
             }
 
-            completionItem = completionMessage.Serialize();
+            await completionItem.AddAsync(completionMessage.Serialize());
             log.Info($"Provision function processed: {completionItem}");
         }
     }
