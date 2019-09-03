@@ -3,6 +3,9 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "AzureWebJobsDashboard": "UseDevelopmentStorage=true",
-    "QueueStorage": "UseDevelopmentStorage=true"
+    "QueueStorage": "UseDevelopmentStorage=true",
+    "ProvisioningServiceUser": "user@tenant.onmicrosoft.com",
+    "ProvisioningServicePassword": "(password here)",
+    "RootSiteUrl": "https://(tenant).sharepoint.com/"
   }
 }
