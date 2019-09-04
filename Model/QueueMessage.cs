@@ -20,10 +20,12 @@ namespace OrchestratedProvisioning.Model
         [JsonConverter(typeof(StringEnumConverter))]
         public Command command { get; set; }
         public string template { get; set; }
+        public string alias { get; set; }
         public string requestId { get; set; }
         public string displayName { get; set; }
         public string description { get; set; }
         public string owner { get; set; }
+        public bool isPublic { get; set; }
         [JsonConverter(typeof(StringEnumConverter))]
         public ResultCode resultCode { get; set; }
         public string resultMessage { get; set; }

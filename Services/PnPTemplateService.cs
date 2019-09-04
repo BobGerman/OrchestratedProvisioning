@@ -35,9 +35,9 @@ namespace OrchestratedProvisioning.Services
                     var siteContext = await ctx.CreateSiteAsync(
                         new TeamSiteCollectionCreationInformation
                         {
-                            Alias = "A0Test3", // Mandatory
-                            DisplayName = "displayName", // Mandatory
-                            Description = "description", // Optional
+                            Alias = request.alias, // Mandatory
+                            DisplayName = request.displayName, // Mandatory
+                            Description = request.description, // Optional
 //                            Classification = "classification", // Optional
                             IsPublic = true, // Optional, default true
                         });
