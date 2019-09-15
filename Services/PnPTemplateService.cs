@@ -42,7 +42,7 @@ namespace OrchestratedProvisioning.Services
                             new TeamSiteCollectionCreationInformation
                             {
                                 Alias = request.alias, // Mandatory
-                            DisplayName = request.displayName, // Mandatory
+                            DisplayName = !String.IsNullOrEmpty(request.displayName) ? request.displayName : request.alias, // Mandatory
                             Description = request.description, // Optional
                                                                //                            Classification = "classification", // Optional
                             IsPublic = true, // Optional, default true
