@@ -1,112 +1,109 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Security;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.SharePoint.Client;
-using OfficeDevPnP.Core.Framework.Provisioning.Connectors;
+﻿using Microsoft.SharePoint.Client;
 using OfficeDevPnP.Core.Framework.Provisioning.Model;
-using OfficeDevPnP.Core.Framework.Provisioning.ObjectHandlers;
 using OfficeDevPnP.Core.Framework.Provisioning.Providers.Xml;
 using OfficeDevPnP.Core.Sites;
 using OrchestratedProvisioning.Model;
+using System;
+using System.Configuration;
+using System.Threading.Tasks;
 
 namespace OrchestratedProvisioning.Services
 {
     class PnPTemplateService
     {
-        public async Task<QueueMessage> ProvisionWithTemplate(QueueMessage request)
+        public async Task<QueueMessage> ProvisionWithTemplate(QueueMessage message)
         {
-            //var userName = ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningUser];
             var rootSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_RootSiteUrl];
-            var templateSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_TemplateSiteUrl];
             string newSiteUrl = null;
 
-            var result = request;
-            result.resultCode = QueueMessage.ResultCode.unknown;
+            message.resultCode = QueueMessage.ResultCode.unknown;
 
             try
             {
                 // Part 1: Create the new site
-                await CsomProviderService.GetContextAsync(rootSiteUrl, (async (ctx) =>
-                {
-                    var siteContext = await ctx.CreateSiteAsync(
-                        new TeamSiteCollectionCreationInformation
-                        {
-                            Alias = request.alias, // Mandatory
-                            DisplayName = !String.IsNullOrEmpty(request.displayName) ? request.displayName : request.alias, // Mandatory
-                            Description = request.description, // Optional
-                                                               //                            Classification = "classification", // Optional
-                                IsPublic = true, // Optional, default true
-                        });
-
-                    var web = siteContext.Web;
-                    siteContext.Load(web, w => w.Title, w => w.ServerRelativeUrl);
-                    await siteContext.ExecuteQueryRetryAsync();
-
-                    // Combine the root and relative URL of the new site
-                    newSiteUrl = (new Uri((new Uri(rootSiteUrl)), web.ServerRelativeUrl)).AbsoluteUri;
-
-                    result.resultMessage = $"Created {web.Title} at {newSiteUrl}";
-                    result.displayName = web.Title;
-                    result.requestId = web.ServerRelativeUrl;
-                }));
+                newSiteUrl = await CreateSiteAsync(message, rootSiteUrl, newSiteUrl);
 
                 // Part 2: Get the provisioning template
                 ProvisioningTemplate provisioningTemplate = null;
-                await CsomProviderService.GetContextAsync(templateSiteUrl, (async (ctx) =>
-                {
-                    // Thanks Anuja Bhojani for posting a sample of how to use this
-                    // http://anujabhojani.blogspot.com/2017/11/pnp-example-of-xmlsharepointtemplatepro.html
-
-                    XMLSharePointTemplateProvider provider = new XMLSharePointTemplateProvider(ctx, templateSiteUrl, ConfigurationManager.AppSettings[AppConstants.KEY_TemplateLibrary]);
-
-                    provisioningTemplate = provider.GetTemplate(request.template);
-
-                    result.resultMessage = $"Retrieved template {request.template} from {templateSiteUrl}";
-
-                }));
+                provisioningTemplate = await GetProvisioningTemplateAsync(message);
 
                 // Part 3: Apply the provisioning template
 
-                await CsomProviderService.GetContextAsync(newSiteUrl, (async (ctx) =>
-                {
-                    Web web = ctx.Web;
-                    ctx.Load(web);
-                    await ctx.ExecuteQueryRetryAsync();
+                await ApplyProvisioningTemplateAsync(message, newSiteUrl, provisioningTemplate);
 
-                    // Is there an async version?
-                    web.ApplyProvisioningTemplate(provisioningTemplate);
-
-                    result.resultMessage = $"Applied provisioning template {request.template} to {newSiteUrl}";
-
-                }));
-
-                result.resultCode = QueueMessage.ResultCode.success;
+                message.resultCode = QueueMessage.ResultCode.success;
             }
             catch (Exception ex)
             {
-                result.resultCode = QueueMessage.ResultCode.failure;
-                result.resultMessage = ex.Message;
+                message.resultCode = QueueMessage.ResultCode.failure;
+                message.resultMessage = ex.Message;
             }
 
-            return result;
+            return message;
         }
 
-        // Converts string to secure string for use in CSOM
-        // Not to be used in untrusted hosting env't as string is still handled
-        // in the clear
-        //private SecureString GetSecureString(string plaintext)
-        //{
-        //    var result = new SecureString();
-        //    foreach (var c in plaintext)
-        //    {
-        //        result.AppendChar(c);
-        //    }
-        //    return result;
-        //}
+        private static async Task<string> CreateSiteAsync(QueueMessage message, string rootSiteUrl, string newSiteUrl)
+        {
+            await CsomProviderService.GetContextAsync(rootSiteUrl, (async (ctx) =>
+            {
+                var siteContext = await ctx.CreateSiteAsync(
+                    new TeamSiteCollectionCreationInformation
+                    {
+                        Alias = message.alias, // Mandatory
+                        DisplayName = !String.IsNullOrEmpty(message.displayName) ? message.displayName : message.alias, // Mandatory
+                        Description = message.description, // Optional
+                                                           //                            Classification = "classification", // Optional
+                        IsPublic = true, // Optional, default true
+                    });
+
+                var web = siteContext.Web;
+                siteContext.Load(web, w => w.Title, w => w.ServerRelativeUrl);
+                await siteContext.ExecuteQueryRetryAsync();
+
+                // Combine the root and relative URL of the new site
+                newSiteUrl = (new Uri((new Uri(rootSiteUrl)), web.ServerRelativeUrl)).AbsoluteUri;
+
+                message.resultMessage = $"Created {web.Title} at {newSiteUrl}";
+                message.displayName = web.Title;
+                message.requestId = web.ServerRelativeUrl;
+            }));
+            return newSiteUrl;
+        }
+
+        private static async Task<ProvisioningTemplate> GetProvisioningTemplateAsync(QueueMessage message)
+        {
+            var templateSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_TemplateSiteUrl];
+            ProvisioningTemplate provisioningTemplate = null;
+
+            await CsomProviderService.GetContextAsync(templateSiteUrl, (async (ctx) =>
+            {
+                // Thanks Anuja Bhojani for posting a sample of how to use this
+                // http://anujabhojani.blogspot.com/2017/11/pnp-example-of-xmlsharepointtemplatepro.html
+
+                XMLSharePointTemplateProvider provider = new XMLSharePointTemplateProvider(ctx, templateSiteUrl, ConfigurationManager.AppSettings[AppConstants.KEY_TemplateLibrary]);
+
+                provisioningTemplate = provider.GetTemplate(message.template);
+
+                message.resultMessage = $"Retrieved template {message.template} from {templateSiteUrl}";
+
+            }));
+            return provisioningTemplate;
+        }
+
+        private static async Task ApplyProvisioningTemplateAsync(QueueMessage message, string newSiteUrl, ProvisioningTemplate provisioningTemplate)
+        {
+            await CsomProviderService.GetContextAsync(newSiteUrl, (async (ctx) =>
+            {
+                Web web = ctx.Web;
+                ctx.Load(web);
+                await ctx.ExecuteQueryRetryAsync();
+
+                // Is there an async version?
+                web.ApplyProvisioningTemplate(provisioningTemplate);
+
+                message.resultMessage = $"Applied provisioning template {message.template} to {newSiteUrl}";
+
+            }));
+        }
     }
 }
