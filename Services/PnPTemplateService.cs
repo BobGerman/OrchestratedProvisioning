@@ -11,9 +11,9 @@ namespace OrchestratedProvisioning.Services
 {
     class PnPTemplateService
     {
-        public async Task<QueueMessage> ProvisionWithTemplate(QueueMessage message)
+        #region Service methods
+        public async Task<QueueMessage> ProvisionWithTemplateAsync(QueueMessage message)
         {
-            var rootSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_RootSiteUrl];
             string newSiteUrl = null;
 
             message.resultCode = QueueMessage.ResultCode.unknown;
@@ -21,7 +21,7 @@ namespace OrchestratedProvisioning.Services
             try
             {
                 // Part 1: Create the new site
-                newSiteUrl = await CreateSiteAsync(message, rootSiteUrl, newSiteUrl);
+                newSiteUrl = await CreateSiteAsync(message,  newSiteUrl);
 
                 // Part 2: Get the provisioning template
                 ProvisioningTemplate provisioningTemplate = null;
@@ -42,8 +42,43 @@ namespace OrchestratedProvisioning.Services
             return message;
         }
 
-        private static async Task<string> CreateSiteAsync(QueueMessage message, string rootSiteUrl, string newSiteUrl)
+        public async Task<QueueMessage> ApplyProvisioningTemplateAsync(QueueMessage message)
         {
+            message.resultCode = QueueMessage.ResultCode.unknown;
+            var rootSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_RootSiteUrl];
+
+
+            try
+            {
+                // Part 1: Update message from site
+                var siteUrl = await GetSiteInfoAsync(message);
+
+                // Part 2: Get the provisioning template
+                ProvisioningTemplate provisioningTemplate = null;
+                provisioningTemplate = await GetProvisioningTemplateAsync(message);
+
+                // Part 3: Apply the provisioning template
+
+                await ApplyProvisioningTemplateAsync(message, siteUrl, provisioningTemplate);
+
+                message.resultCode = QueueMessage.ResultCode.success;
+            }
+            catch (Exception ex)
+            {
+                message.resultCode = QueueMessage.ResultCode.failure;
+                message.resultMessage = ex.Message;
+            }
+
+            return message;
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private static async Task<string> CreateSiteAsync(QueueMessage message, string newSiteUrl)
+        {
+            var rootSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_RootSiteUrl];
             await CsomProviderService.GetContextAsync(rootSiteUrl, (async (ctx) =>
             {
                 var siteContext = await ctx.CreateSiteAsync(
@@ -68,6 +103,24 @@ namespace OrchestratedProvisioning.Services
                 message.requestId = web.ServerRelativeUrl;
             }));
             return newSiteUrl;
+        }
+
+        private static async Task<string> GetSiteInfoAsync(QueueMessage message)
+        {
+            var rootSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_RootSiteUrl];
+            var siteUrl = (new Uri((new Uri(rootSiteUrl)), $"/sites/{message.alias}")).AbsoluteUri;
+
+            await CsomProviderService.GetContextAsync(siteUrl, (async (ctx) =>
+            {
+                var web = ctx.Web;
+                ctx.Load(web, w => w.Title, w => w.ServerRelativeUrl);
+                await ctx.ExecuteQueryRetryAsync();
+
+                message.resultMessage = $"Found {web.Title} at {siteUrl}";
+                message.displayName = web.Title;
+                message.requestId = web.ServerRelativeUrl;
+            }));
+            return siteUrl;
         }
 
         private static async Task<ProvisioningTemplate> GetProvisioningTemplateAsync(QueueMessage message)
@@ -105,5 +158,7 @@ namespace OrchestratedProvisioning.Services
 
             }));
         }
+
+        #endregion
     }
 }
