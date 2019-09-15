@@ -20,7 +20,7 @@ namespace OrchestratedProvisioning.Services
     {
         public async Task<QueueMessage> ProvisionWithTemplate(QueueMessage request)
         {
-            var userName = ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningUser];
+            //var userName = ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningUser];
             var rootSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_RootSiteUrl];
             var templateSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_TemplateSiteUrl];
             string newSiteUrl = null;
@@ -31,76 +31,59 @@ namespace OrchestratedProvisioning.Services
             try
             {
                 // Part 1: Create the new site
-                using (var ctx = new ClientContext(rootSiteUrl))
+                await CsomProviderService.GetContextAsync(rootSiteUrl, (async (ctx) =>
                 {
-                    using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
-                    {
-                        ctx.Credentials = new SharePointOnlineCredentials(userName, password);
-                        ctx.RequestTimeout = Timeout.Infinite;
-
-                        var siteContext = await ctx.CreateSiteAsync(
-                            new TeamSiteCollectionCreationInformation
-                            {
-                                Alias = request.alias, // Mandatory
+                    var siteContext = await ctx.CreateSiteAsync(
+                        new TeamSiteCollectionCreationInformation
+                        {
+                            Alias = request.alias, // Mandatory
                             DisplayName = !String.IsNullOrEmpty(request.displayName) ? request.displayName : request.alias, // Mandatory
                             Description = request.description, // Optional
                                                                //                            Classification = "classification", // Optional
-                            IsPublic = true, // Optional, default true
+                                IsPublic = true, // Optional, default true
                         });
 
-                        var web = siteContext.Web;
-                        siteContext.Load(web, w => w.Title, w => w.ServerRelativeUrl);
-                        await siteContext.ExecuteQueryRetryAsync();
+                    var web = siteContext.Web;
+                    siteContext.Load(web, w => w.Title, w => w.ServerRelativeUrl);
+                    await siteContext.ExecuteQueryRetryAsync();
 
-                        // Combine the root and relative URL of the new site
-                        newSiteUrl = (new Uri((new Uri(rootSiteUrl)), web.ServerRelativeUrl)).AbsoluteUri;
+                    // Combine the root and relative URL of the new site
+                    newSiteUrl = (new Uri((new Uri(rootSiteUrl)), web.ServerRelativeUrl)).AbsoluteUri;
 
-                        result.resultMessage = $"Created {web.Title} at {newSiteUrl}";
-                        result.displayName = web.Title;
-                        result.requestId = web.ServerRelativeUrl;
-
-                    }
-                }
+                    result.resultMessage = $"Created {web.Title} at {newSiteUrl}";
+                    result.displayName = web.Title;
+                    result.requestId = web.ServerRelativeUrl;
+                }));
 
                 // Part 2: Get the provisioning template
                 ProvisioningTemplate provisioningTemplate = null;
-                using (var ctx = new ClientContext(templateSiteUrl))
+                await CsomProviderService.GetContextAsync(templateSiteUrl, (async (ctx) =>
                 {
-                    using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
-                    {
-                        ctx.Credentials = new SharePointOnlineCredentials(userName, password);
-                        ctx.RequestTimeout = Timeout.Infinite;
+                    // Thanks Anuja Bhojani for posting a sample of how to use this
+                    // http://anujabhojani.blogspot.com/2017/11/pnp-example-of-xmlsharepointtemplatepro.html
 
-                        // Thanks Anuja Bhojani for posting a sample of how to use this
-                        // http://anujabhojani.blogspot.com/2017/11/pnp-example-of-xmlsharepointtemplatepro.html
+                    XMLSharePointTemplateProvider provider = new XMLSharePointTemplateProvider(ctx, templateSiteUrl, ConfigurationManager.AppSettings[AppConstants.KEY_TemplateLibrary]);
 
-                        XMLSharePointTemplateProvider provider = new XMLSharePointTemplateProvider(ctx, templateSiteUrl, ConfigurationManager.AppSettings[AppConstants.KEY_TemplateLibrary]);
+                    provisioningTemplate = provider.GetTemplate(request.template);
 
-                        // Is there an async version?
-                        provisioningTemplate = provider.GetTemplate(request.template);
+                    result.resultMessage = $"Retrieved template {request.template} from {templateSiteUrl}";
 
-                        result.resultMessage = $"Retrieved template {request.template} from {templateSiteUrl}";
-                    }
-                }
+                }));
 
                 // Part 3: Apply the provisioning template
-                using (var ctx = new ClientContext(newSiteUrl))
+
+                await CsomProviderService.GetContextAsync(newSiteUrl, (async (ctx) =>
                 {
-                    using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
-                    {
-                        ctx.Credentials = new SharePointOnlineCredentials(userName, password);
-                        ctx.RequestTimeout = Timeout.Infinite;
+                    Web web = ctx.Web;
+                    ctx.Load(web);
+                    await ctx.ExecuteQueryRetryAsync();
 
-                        Web web = ctx.Web;
-                        ctx.Load(web);
-                        await ctx.ExecuteQueryRetryAsync();
+                    // Is there an async version?
+                    web.ApplyProvisioningTemplate(provisioningTemplate);
 
-                        // Is there an async version?
-                        web.ApplyProvisioningTemplate(provisioningTemplate);
+                    result.resultMessage = $"Applied provisioning template {request.template} to {newSiteUrl}";
 
-                        result.resultMessage = $"Applied provisioning template {request.template} to {newSiteUrl}";
-                    }
-                }
+                }));
 
                 result.resultCode = QueueMessage.ResultCode.success;
             }
@@ -116,14 +99,14 @@ namespace OrchestratedProvisioning.Services
         // Converts string to secure string for use in CSOM
         // Not to be used in untrusted hosting env't as string is still handled
         // in the clear
-        private SecureString GetSecureString(string plaintext)
-        {
-            var result = new SecureString();
-            foreach (var c in plaintext)
-            {
-                result.AppendChar(c);
-            }
-            return result;
-        }
+        //private SecureString GetSecureString(string plaintext)
+        //{
+        //    var result = new SecureString();
+        //    foreach (var c in plaintext)
+        //    {
+        //        result.AppendChar(c);
+        //    }
+        //    return result;
+        //}
     }
 }
