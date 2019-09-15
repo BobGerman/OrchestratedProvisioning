@@ -18,39 +18,96 @@ namespace OrchestratedProvisioning.Services
 {
     class PnPTemplateService
     {
-        public async Task<QueueMessage> ApplyProvisioningTemplate (QueueMessage request)
+        public async Task<QueueMessage> ProvisionWithTemplate(QueueMessage request)
         {
             var userName = ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningUser];
             var rootSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_RootSiteUrl];
+            var templateSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_TemplateSiteUrl];
+            string newSiteUrl = null;
 
             var result = request;
+            result.resultCode = QueueMessage.ResultCode.unknown;
 
-            using (var ctx = new ClientContext(rootSiteUrl))
+            try
             {
-                using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
+                // Part 1: Create the new site
+                using (var ctx = new ClientContext(rootSiteUrl))
                 {
-                    ctx.Credentials = new SharePointOnlineCredentials(userName, password);
-                    ctx.RequestTimeout = Timeout.Infinite;
+                    using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
+                    {
+                        ctx.Credentials = new SharePointOnlineCredentials(userName, password);
+                        ctx.RequestTimeout = Timeout.Infinite;
 
-                    var siteContext = await ctx.CreateSiteAsync(
-                        new TeamSiteCollectionCreationInformation
-                        {
-                            Alias = request.alias, // Mandatory
+                        var siteContext = await ctx.CreateSiteAsync(
+                            new TeamSiteCollectionCreationInformation
+                            {
+                                Alias = request.alias, // Mandatory
                             DisplayName = request.displayName, // Mandatory
                             Description = request.description, // Optional
-//                            Classification = "classification", // Optional
+                                                               //                            Classification = "classification", // Optional
                             IsPublic = true, // Optional, default true
                         });
 
-                    var web = siteContext.Web;
-                    siteContext.Load(web, w => w.Title, w => w.ServerRelativeUrl);
-                    await siteContext.ExecuteQueryRetryAsync();
+                        var web = siteContext.Web;
+                        siteContext.Load(web, w => w.Title, w => w.ServerRelativeUrl);
+                        await siteContext.ExecuteQueryRetryAsync();
 
-                    result.resultCode = QueueMessage.ResultCode.success;
-                    result.resultMessage = web.Title;
-                    result.displayName = web.Title;
-                    result.requestId = web.ServerRelativeUrl;
+                        // Combine the root and relative URL of the new site
+                        newSiteUrl = (new Uri((new Uri(rootSiteUrl)), web.ServerRelativeUrl)).AbsoluteUri;
+
+                        result.resultMessage = $"Created {web.Title} at {newSiteUrl}";
+                        result.displayName = web.Title;
+                        result.requestId = web.ServerRelativeUrl;
+
+                    }
                 }
+
+                // Part 2: Get the provisioning template
+                ProvisioningTemplate provisioningTemplate = null;
+                using (var ctx = new ClientContext(templateSiteUrl))
+                {
+                    using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
+                    {
+                        ctx.Credentials = new SharePointOnlineCredentials(userName, password);
+                        ctx.RequestTimeout = Timeout.Infinite;
+
+                        // Thanks Anuja Bhojani for posting a sample of how to use this
+                        // http://anujabhojani.blogspot.com/2017/11/pnp-example-of-xmlsharepointtemplatepro.html
+
+                        XMLSharePointTemplateProvider provider = new XMLSharePointTemplateProvider(ctx, templateSiteUrl, ConfigurationManager.AppSettings[AppConstants.KEY_TemplateLibrary]);
+
+                        // Is there an async version?
+                        provisioningTemplate = provider.GetTemplate(request.template);
+
+                        result.resultMessage = $"Retrieved template {request.template} from {templateSiteUrl}";
+                    }
+                }
+
+                // Part 3: Apply the provisioning template
+                using (var ctx = new ClientContext(newSiteUrl))
+                {
+                    using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
+                    {
+                        ctx.Credentials = new SharePointOnlineCredentials(userName, password);
+                        ctx.RequestTimeout = Timeout.Infinite;
+
+                        Web web = ctx.Web;
+                        ctx.Load(web);
+                        await ctx.ExecuteQueryRetryAsync();
+
+                        // Is there an async version?
+                        web.ApplyProvisioningTemplate(provisioningTemplate);
+
+                        result.resultMessage = $"Applied provisioning template {request.template} to {newSiteUrl}";
+                    }
+                }
+
+                result.resultCode = QueueMessage.ResultCode.success;
+            }
+            catch (Exception ex)
+            {
+                result.resultCode = QueueMessage.ResultCode.failure;
+                result.resultMessage = ex.Message;
             }
 
             return result;

@@ -28,15 +28,14 @@ namespace OrchestratedProvisioning
                 {
                     throw new Exception("Empty template name");
                 }
-                var templateString = await reader.Read(requestMessage.template);
+                //var templateString = await reader.Read(requestMessage.template);
 
                 switch (requestMessage.command)
                 {
                     case QueueMessage.Command.provisionModernTeamSite:
                         {
                             var pnpProvisioningService = new PnPTemplateService();
-                            completionMessage = await pnpProvisioningService.ApplyProvisioningTemplate(requestMessage);
-                            completionMessage.resultMessage = templateString;
+                            completionMessage = await pnpProvisioningService.ProvisionWithTemplate(requestMessage);
                             break;
                         }
                     default:
