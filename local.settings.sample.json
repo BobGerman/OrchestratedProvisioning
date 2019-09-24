@@ -4,6 +4,7 @@
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "AzureWebJobsDashboard": "UseDevelopmentStorage=true",
     "QueueStorage": "UseDevelopmentStorage=true",
+    "ClientId": "00000000-0000-0000-0000-000000000000",
     "ProvisioningServiceUser": "user@tenant.onmicrosoft.com",
     "ProvisioningServicePassword": "(password here)",
     "RootSiteUrl": "https://(tenant).sharepoint.com/",

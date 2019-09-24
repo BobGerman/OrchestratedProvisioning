@@ -9,7 +9,7 @@ namespace OrchestratedProvisioning.Model
         // Therefore be sure the 1st enumeration is unknown so we can detect this
         public enum Command
         {
-            unknown, provisionModernTeamSite, applyProvisioningTemplate
+            unknown, provisionModernTeamSite, applyProvisioningTemplate, createTeam
         }
 
         public enum ResultCode

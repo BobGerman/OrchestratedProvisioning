@@ -46,6 +46,13 @@ namespace OrchestratedProvisioning
                             break;
                         }
 
+                    case QueueMessage.Command.createTeam:
+                        {
+                            var teamsProvisioningService = new TeamsProvisioningService();
+                            completionMessage = await teamsProvisioningService.CreateTeam(requestMessage);
+                            break;
+                        }
+
                     default:
                         {
                             completionMessage.resultCode = QueueMessage.ResultCode.failure;

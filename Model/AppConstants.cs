@@ -6,6 +6,7 @@
         public const string KEY_Storage = "AzureWebJobsStorage";
         public const string KEY_ProvisioningUser = "ProvisioningServiceUser";
         public const string KEY_ProvisioningPassword = "ProvisioningServicePassword";
+        public const string KEY_ClientId = "ClientId";
         public const string KEY_RootSiteUrl = "RootSiteUrl";
         public const string KEY_TemplateSiteUrl = "TemplateSiteUrl";
         public const string KEY_TemplateLibrary = "TemplateLibrary";
