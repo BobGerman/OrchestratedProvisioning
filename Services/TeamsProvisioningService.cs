@@ -15,6 +15,9 @@ namespace OrchestratedProvisioning.Services
     {
         public async Task<QueueMessage> CreateTeam(QueueMessage message)
         {
+            var reader = new TemplateReader();
+            var templateString = await reader.Read(message.template);
+
             var clientId = ConfigurationManager.AppSettings[AppConstants.KEY_ClientId];
             var builder = PublicClientApplicationBuilder.Create(clientId).WithTenantId(ConfigurationManager.AppSettings[AppConstants.KEY_TenantId]);
             var app = builder.Build();
@@ -26,6 +29,7 @@ namespace OrchestratedProvisioning.Services
             {
                 var tokenService = new TokenService(app);
                 var token = await tokenService.AcquireATokenFromCacheOrUsernamePasswordAsync(scopes, userName, password);
+
 
                 message.description = token.AccessToken;
 

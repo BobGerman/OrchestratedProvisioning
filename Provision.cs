@@ -23,13 +23,11 @@ namespace OrchestratedProvisioning
             try
             {
                 var requestMessage = QueueMessage.NewFromJson(requestItem);
-                var reader = new TemplateReader();
                 if (string.IsNullOrEmpty(requestMessage.template))
                 {
                     throw new Exception("Empty template name");
                 }
-                //var templateString = await reader.Read(requestMessage.template);
-
+                
                 switch (requestMessage.command)
                 {
                     case QueueMessage.Command.provisionModernTeamSite:
