@@ -16,11 +16,11 @@ namespace OrchestratedProvisioning.Services
         public async Task<QueueMessage> CreateTeam(QueueMessage message)
         {
             var clientId = ConfigurationManager.AppSettings[AppConstants.KEY_ClientId];
-            var builder = PublicClientApplicationBuilder.Create(clientId);
+            var builder = PublicClientApplicationBuilder.Create(clientId).WithTenantId(ConfigurationManager.AppSettings[AppConstants.KEY_TenantId]);
             var app = builder.Build();
 
             var userName = ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningUser];
-            var scopes = new string[] { "User.Read", "User.ReadBasic.All" };
+            var scopes = new string[] { "Group.ReadWrite.All" };
 
             using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
             {
