@@ -21,14 +21,14 @@ namespace OrchestratedProvisioning.Services
             var reader = new TemplateReader();
             var templateString = await reader.Read(message);
 
-            var clientId = ConfigurationManager.AppSettings[AppConstants.KEY_ClientId];
-            var builder = PublicClientApplicationBuilder.Create(clientId).WithTenantId(ConfigurationManager.AppSettings[AppConstants.KEY_TenantId]);
+            var clientId = ConfigurationManager.AppSettings[SettingKey.ClientId];
+            var builder = PublicClientApplicationBuilder.Create(clientId).WithTenantId(ConfigurationManager.AppSettings[SettingKey.TenantId]);
             var app = builder.Build();
 
-            var userName = ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningUser];
+            var userName = ConfigurationManager.AppSettings[SettingKey.ProvisioningUser];
             var scopes = new string[] { "Group.ReadWrite.All" };
 
-            using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
+            using (var password = GetSecureString(ConfigurationManager.AppSettings[SettingKey.ProvisioningPassword]))
             {
                 var tokenService = new TokenService(app);
                 var token = await tokenService.AcquireATokenFromCacheOrUsernamePasswordAsync(scopes, userName, password);

@@ -12,11 +12,11 @@ namespace OrchestratedProvisioning.Services
         public delegate Task Callback(ClientContext ctx);
         public static async Task GetContextAsync(string siteUrl, Callback callback)
         {
-            var userName = ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningUser];
+            var userName = ConfigurationManager.AppSettings[SettingKey.ProvisioningUser];
 
             using (var ctx = new ClientContext(siteUrl))
             {
-                using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
+                using (var password = GetSecureString(ConfigurationManager.AppSettings[SettingKey.ProvisioningPassword]))
                 {
                     ctx.Credentials = new SharePointOnlineCredentials(userName, password);
                     ctx.RequestTimeout = Timeout.Infinite;

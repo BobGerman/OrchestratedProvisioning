@@ -12,10 +12,10 @@ namespace OrchestratedProvisioning
         [FunctionName("Provision")]
         public static async Task Run(
             // Input binding is the request queue
-            [QueueTrigger(AppConstants.RequestQueueName, Connection = AppConstants.KEY_Storage)]string requestItem,
+            [QueueTrigger(Constants.RequestQueueName, Connection = SettingKey.Storage)]string requestItem,
 
             // Output binding is the completion queue
-            [Queue(AppConstants.CompletionQueueName, Connection = AppConstants.KEY_Storage)] IAsyncCollector<string> completionItem,
+            [Queue(Constants.CompletionQueueName, Connection = SettingKey.Storage)] IAsyncCollector<string> completionItem,
             TraceWriter log)
         {
             var completionMessage = new QueueMessage();

@@ -14,13 +14,13 @@ namespace OrchestratedProvisioning.Services
     {
         public async Task<string> Read(QueueMessage message)
         {
-            var templateSiteUrl = ConfigurationManager.AppSettings[AppConstants.KEY_TemplateSiteUrl];
-            var templateLibrary = ConfigurationManager.AppSettings[AppConstants.KEY_TemplateLibrary];
-            var userName = ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningUser];
+            var templateSiteUrl = ConfigurationManager.AppSettings[SettingKey.TemplateSiteUrl];
+            var templateLibrary = ConfigurationManager.AppSettings[SettingKey.TemplateLibrary];
+            var userName = ConfigurationManager.AppSettings[SettingKey.ProvisioningUser];
 
             using (var ctx = new ClientContext(templateSiteUrl))
             {
-                using (var password = GetSecureString(ConfigurationManager.AppSettings[AppConstants.KEY_ProvisioningPassword]))
+                using (var password = GetSecureString(ConfigurationManager.AppSettings[SettingKey.ProvisioningPassword]))
                 {
                     ctx.Credentials = new SharePointOnlineCredentials(userName, password);
                     ctx.RequestTimeout = Timeout.Infinite;
