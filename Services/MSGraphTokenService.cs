@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace OrchestratedProvisioning.Services
 {
-    public class TokenService
+    public class MSGraphTokenService
     {
         /// <summary>
         /// Constructor of a public application leveraging username passwords to acquire a token
@@ -19,7 +19,7 @@ namespace OrchestratedProvisioning.Services
         /// <remarks>
         /// For more information see https://aka.ms/msal-net-up
         /// </remarks>
-        public TokenService(IPublicClientApplication app)
+        public MSGraphTokenService(IPublicClientApplication app)
         {
             App = app;
         }

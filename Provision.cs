@@ -32,14 +32,14 @@ namespace OrchestratedProvisioning
                 {
                     case QueueMessage.Command.provisionModernTeamSite:
                         {
-                            var pnpProvisioningService = new PnPTemplateService();
+                            var pnpProvisioningService = new PnPProvisioningService();
                             completionMessage = await pnpProvisioningService.ProvisionWithTemplateAsync(requestMessage);
                             break;
                         }
 
                     case QueueMessage.Command.applyProvisioningTemplate:
                         {
-                            var pnpProvisioningService = new PnPTemplateService();
+                            var pnpProvisioningService = new PnPProvisioningService();
                             completionMessage = await pnpProvisioningService.ApplyProvisioningTemplateAsync(requestMessage);
                             break;
                         }

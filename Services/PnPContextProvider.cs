@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 
 namespace OrchestratedProvisioning.Services
 {
-    public static class CsomProviderService
+    public static class PnPContextProvider
     {
         public delegate Task Callback(ClientContext ctx);
-        public static async Task GetContextAsync(string siteUrl, Callback callback)
+        public static async Task WithContextAsync(string siteUrl, Callback callback)
         {
             var userName = ConfigurationManager.AppSettings[SettingKey.ProvisioningUser];
 

@@ -18,7 +18,7 @@ namespace OrchestratedProvisioning.Services
     {
         public async Task<QueueMessage> CreateTeam(QueueMessage message)
         {
-            var reader = new TemplateReader();
+            var reader = new TeamsTemplateReader();
             var templateString = await reader.Read(message);
 
             var clientId = ConfigurationManager.AppSettings[SettingKey.ClientId];
@@ -30,7 +30,7 @@ namespace OrchestratedProvisioning.Services
 
             using (var password = GetSecureString(ConfigurationManager.AppSettings[SettingKey.ProvisioningPassword]))
             {
-                var tokenService = new TokenService(app);
+                var tokenService = new MSGraphTokenService(app);
                 var token = await tokenService.AcquireATokenFromCacheOrUsernamePasswordAsync(scopes, userName, password);
 
                 using (var client = new HttpClient())

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace OrchestratedProvisioning.Services
 {
-    class PnPTemplateService
+    class PnPProvisioningService
     {
         #region Service methods
         public async Task<QueueMessage> ProvisionWithTemplateAsync(QueueMessage message)
@@ -79,7 +79,7 @@ namespace OrchestratedProvisioning.Services
         private static async Task<string> CreateSiteAsync(QueueMessage message, string newSiteUrl)
         {
             var rootSiteUrl = ConfigurationManager.AppSettings[SettingKey.RootSiteUrl];
-            await CsomProviderService.GetContextAsync(rootSiteUrl, (async (ctx) =>
+            await PnPContextProvider.WithContextAsync(rootSiteUrl, (async (ctx) =>
             {
                 var siteContext = await ctx.CreateSiteAsync(
                     new TeamSiteCollectionCreationInformation
@@ -110,7 +110,7 @@ namespace OrchestratedProvisioning.Services
             var rootSiteUrl = ConfigurationManager.AppSettings[SettingKey.RootSiteUrl];
             var siteUrl = (new Uri((new Uri(rootSiteUrl)), $"/sites/{message.alias}")).AbsoluteUri;
 
-            await CsomProviderService.GetContextAsync(siteUrl, (async (ctx) =>
+            await PnPContextProvider.WithContextAsync(siteUrl, (async (ctx) =>
             {
                 var web = ctx.Web;
                 ctx.Load(web, w => w.Title, w => w.ServerRelativeUrl);
@@ -128,7 +128,7 @@ namespace OrchestratedProvisioning.Services
             var templateSiteUrl = ConfigurationManager.AppSettings[SettingKey.TemplateSiteUrl];
             ProvisioningTemplate provisioningTemplate = null;
 
-            await CsomProviderService.GetContextAsync(templateSiteUrl, (async (ctx) =>
+            await PnPContextProvider.WithContextAsync(templateSiteUrl, (async (ctx) =>
             {
                 // Thanks Anuja Bhojani for posting a sample of how to use this
                 // http://anujabhojani.blogspot.com/2017/11/pnp-example-of-xmlsharepointtemplatepro.html
@@ -145,7 +145,7 @@ namespace OrchestratedProvisioning.Services
 
         private static async Task ApplyProvisioningTemplateAsync(QueueMessage message, string newSiteUrl, ProvisioningTemplate provisioningTemplate)
         {
-            await CsomProviderService.GetContextAsync(newSiteUrl, (async (ctx) =>
+            await PnPContextProvider.WithContextAsync(newSiteUrl, (async (ctx) =>
             {
                 Web web = ctx.Web;
                 ctx.Load(web);

@@ -10,7 +10,7 @@ using OrchestratedProvisioning.Model;
 
 namespace OrchestratedProvisioning.Services
 {
-    class TemplateReader
+    class TeamsTemplateReader
     {
         public async Task<string> Read(QueueMessage message)
         {
