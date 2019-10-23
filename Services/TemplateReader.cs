@@ -53,8 +53,9 @@ namespace OrchestratedProvisioning.Services
                     AddOrReplaceJsonProperty(resultJson, "displayName", message.displayName);
                     AddOrReplaceJsonProperty(resultJson, "description", message.description);
 
+                    var ownerId = await GetUserIdFromUpnAsync(message.owner);
                     var ownersJson = new JArray();
-                    ownersJson.Add($"https://graph.microsoft.com/beta/users('{message.owner}')");
+                    ownersJson.Add($"https://graph.microsoft.com/beta/users('{ownerId}')");
 
                     AddOrReplaceJsonProperty(resultJson, "owners@odata.bind", ownersJson);
 
@@ -64,6 +65,11 @@ namespace OrchestratedProvisioning.Services
                     return result;
                 }
             }
+        }
+
+        private async Task<string> GetUserIdFromUpnAsync (string upn)
+        {
+            return "cda79e6a-d052-4eb8-b192-7e039ad0ed73";
         }
 
         private void AddOrReplaceJsonProperty(JObject j, string key, string value)

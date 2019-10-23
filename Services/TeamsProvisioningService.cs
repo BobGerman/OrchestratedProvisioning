@@ -52,23 +52,29 @@ namespace OrchestratedProvisioning.Services
                         throw new Exception(errorMessage);
                     }
 
-                    response.EnsureSuccessStatusCode();
-
-                    var operationUrl = response.Headers.Location;
+                    var operationUrl = "https://graph.microsoft.com/beta" + response.Headers.Location;
                     var done = false;
                     HttpResponseMessage opResponse = null;
+                    var teamId = string.Empty;
                     while (!done)
                     {
                         await Task.Delay(5000);
 
                         opResponse = await client.GetAsync(operationUrl);
-                        opResponse.EnsureSuccessStatusCode();
+                        if (!opResponse.IsSuccessStatusCode)
+                        {
+                            var responseContent = await opResponse.Content.ReadAsStringAsync();
+                            var responseJson = JObject.Parse(responseContent);
+                            var errorMessage = responseJson["error"]["message"].ToString();
 
-                        done = opResponse.Headers.GetValues("status")?.FirstOrDefault<string>() == "succeeded";
+                            throw new Exception(errorMessage);
+                        }
+
+                        var opResponseContent = await opResponse.Content.ReadAsStringAsync();
+                        var opResponseJson = JObject.Parse(opResponseContent);
+                        done = opResponseJson["status"]?.ToString() == "succeeded";
+                        teamId = opResponseJson["id"]?.ToString();
                     }
-
-                    string teamId = opResponse?.Headers.GetValues("id")?.FirstOrDefault<string>();
-                    //string resultContent = await response.Content.ReadAsStringAsync();
 
                     message.description = teamId;
                 }
