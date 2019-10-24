@@ -15,14 +15,14 @@ namespace OrchestratedProvisioning.Services
         public delegate Task Callback(AuthenticationResult authResult);
         public static async Task WithAuthResult(Callback callback)
         {
-            var clientId = ConfigurationManager.AppSettings[SettingKey.ClientId];
-            var builder = PublicClientApplicationBuilder.Create(clientId).WithTenantId(ConfigurationManager.AppSettings[SettingKey.TenantId]);
+            var clientId = Settings.GetString(Settings.Key.ClientId);
+            var builder = PublicClientApplicationBuilder.Create(clientId).WithTenantId(Settings.GetString(Settings.Key.TenantId));
             var app = builder.Build();
 
-            var userName = ConfigurationManager.AppSettings[SettingKey.ProvisioningUser];
+            var userName = Settings.GetString(Settings.Key.ProvisioningUser);
             var scopes = new string[] { "Group.ReadWrite.All" };
 
-            using (var password = GetSecureString(ConfigurationManager.AppSettings[SettingKey.ProvisioningPassword]))
+            using (var password = Settings.GetSecureString(Settings.Key.ProvisioningPassword))
             {
                 var tokenService = new MSGraphTokenProvider(app);
                 var token = await tokenService.AcquireATokenFromCacheOrUsernamePasswordAsync(scopes, userName, password);
@@ -220,16 +220,5 @@ namespace OrchestratedProvisioning.Services
             }
             return result;
         }
-
-        private static SecureString GetSecureString(string plaintext)
-        {
-            var result = new SecureString();
-            foreach (var c in plaintext)
-            {
-                result.AppendChar(c);
-            }
-            return result;
-        }
-
     }
 }

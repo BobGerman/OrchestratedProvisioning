@@ -1,22 +1,69 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
 namespace OrchestratedProvisioning.Services
 {
     class MSGraphClient
     {
-        public async Task<JObject> Get(string url)
+        public async Task<JObject> Get(string token, string url)
         {
-            return null;
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+
+                var response = await client.GetAsync(url);
+
+                await EnsureSuccess(response);
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var result = JObject.Parse(responseContent);
+                return result;
+            }
         }
 
-        public async Task<JObject> PostTeamsAsyncOperation(string url, string body)
+        public async Task<JObject> PostTeamsAsyncOperation(string token, string url, string stringContent)
         {
-            return null;
+            JObject result = null;
+
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+
+                var body = new StringContent(stringContent);
+                body.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                var response = await client.PostAsync(url, body);
+
+                await EnsureSuccess(response);
+
+                var operationUrl = "https://graph.microsoft.com/beta" + response.Headers.Location;
+                var done = false;
+                while (!done)
+                {
+                    await Task.Delay(5000);
+                    result = await Get(token, operationUrl);
+                    done = result["status"]?.ToString() == "succeeded";
+                }
+            }
+
+            return result;
+        }
+
+        // If the response isn't successful, get the message from Graph and throw an excaption
+        private async Task EnsureSuccess(HttpResponseMessage response)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseJson = JObject.Parse(responseContent);
+                var errorMessage = responseJson["error"]["message"].ToString();
+
+                throw new Exception(errorMessage);
+            }
         }
     }
 }

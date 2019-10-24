@@ -1,6 +1,4 @@
 ﻿using Microsoft.SharePoint.Client;
-using OrchestratedProvisioning.Model;
-using System.Configuration;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,11 +10,11 @@ namespace OrchestratedProvisioning.Services
         public delegate Task Callback(ClientContext ctx);
         public static async Task WithContextAsync(string siteUrl, Callback callback)
         {
-            var userName = ConfigurationManager.AppSettings[SettingKey.ProvisioningUser];
+            var userName = Settings.GetString(Settings.Key.ProvisioningUser);
 
             using (var ctx = new ClientContext(siteUrl))
             {
-                using (var password = GetSecureString(ConfigurationManager.AppSettings[SettingKey.ProvisioningPassword]))
+                using (var password = GetSecureString(Settings.Key.ProvisioningPassword))
                 {
                     ctx.Credentials = new SharePointOnlineCredentials(userName, password);
                     ctx.RequestTimeout = Timeout.Infinite;

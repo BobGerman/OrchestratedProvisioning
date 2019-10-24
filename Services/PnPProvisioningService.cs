@@ -45,7 +45,7 @@ namespace OrchestratedProvisioning.Services
         public async Task<QueueMessage> ApplyProvisioningTemplateAsync(QueueMessage message)
         {
             message.resultCode = QueueMessage.ResultCode.unknown;
-            var rootSiteUrl = ConfigurationManager.AppSettings[SettingKey.RootSiteUrl];
+            var rootSiteUrl = Settings.GetString(Settings.Key.RootSiteUrl);
 
 
             try
@@ -78,7 +78,7 @@ namespace OrchestratedProvisioning.Services
 
         private static async Task<string> CreateSiteAsync(QueueMessage message, string newSiteUrl)
         {
-            var rootSiteUrl = ConfigurationManager.AppSettings[SettingKey.RootSiteUrl];
+            var rootSiteUrl = Settings.GetString(Settings.Key.RootSiteUrl);
             await PnPContextProvider.WithContextAsync(rootSiteUrl, (async (ctx) =>
             {
                 var siteContext = await ctx.CreateSiteAsync(
@@ -107,7 +107,7 @@ namespace OrchestratedProvisioning.Services
 
         private static async Task<string> GetSiteInfoAsync(QueueMessage message)
         {
-            var rootSiteUrl = ConfigurationManager.AppSettings[SettingKey.RootSiteUrl];
+            var rootSiteUrl = Settings.GetString(Settings.Key.RootSiteUrl);
             var siteUrl = (new Uri((new Uri(rootSiteUrl)), $"/sites/{message.alias}")).AbsoluteUri;
 
             await PnPContextProvider.WithContextAsync(siteUrl, (async (ctx) =>
@@ -125,7 +125,7 @@ namespace OrchestratedProvisioning.Services
 
         private static async Task<ProvisioningTemplate> GetProvisioningTemplateAsync(QueueMessage message)
         {
-            var templateSiteUrl = ConfigurationManager.AppSettings[SettingKey.TemplateSiteUrl];
+            var templateSiteUrl = Settings.GetString(Settings.Key.TemplateSiteUrl);
             ProvisioningTemplate provisioningTemplate = null;
 
             await PnPContextProvider.WithContextAsync(templateSiteUrl, (async (ctx) =>
@@ -133,7 +133,7 @@ namespace OrchestratedProvisioning.Services
                 // Thanks Anuja Bhojani for posting a sample of how to use this
                 // http://anujabhojani.blogspot.com/2017/11/pnp-example-of-xmlsharepointtemplatepro.html
 
-                XMLSharePointTemplateProvider provider = new XMLSharePointTemplateProvider(ctx, templateSiteUrl, ConfigurationManager.AppSettings[SettingKey.TemplateLibrary]);
+                XMLSharePointTemplateProvider provider = new XMLSharePointTemplateProvider(ctx, templateSiteUrl, Settings.GetString(Settings.Key.TemplateLibrary));
 
                 provisioningTemplate = provider.GetTemplate(message.template);
 
