@@ -1,10 +1,8 @@
-﻿using System.Configuration;
-using System.Security;
+﻿using System.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SharePoint.Client;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OrchestratedProvisioning.Model;
 
@@ -12,7 +10,7 @@ namespace OrchestratedProvisioning.Services
 {
     class TeamsTemplateReader
     {
-        public async Task<string> Read(QueueMessage message)
+        public async Task<string> Read(QueueMessage message, string ownerId)
         {
             var templateSiteUrl = Settings.GetString(Settings.Key.TemplateSiteUrl);
             var templateLibrary = Settings.GetString(Settings.Key.TemplateLibrary);
@@ -53,12 +51,10 @@ namespace OrchestratedProvisioning.Services
                     AddOrReplaceJsonProperty(resultJson, "displayName", message.displayName);
                     AddOrReplaceJsonProperty(resultJson, "description", message.description);
 
-                    var ownerId = await GetUserIdFromUpnAsync(message.owner);
                     var ownersJson = new JArray();
                     ownersJson.Add($"https://graph.microsoft.com/beta/users('{ownerId}')");
 
                     AddOrReplaceJsonProperty(resultJson, "owners@odata.bind", ownersJson);
-
 
                     var result = resultJson.ToString();
 

@@ -20,7 +20,7 @@ namespace OrchestratedProvisioning.Services
             var app = builder.Build();
 
             var userName = Settings.GetString(Settings.Key.ProvisioningUser);
-            var scopes = new string[] { "Group.ReadWrite.All" };
+            string[] scopes = { "Group.ReadWrite.All" };
 
             using (var password = Settings.GetSecureString(Settings.Key.ProvisioningPassword))
             {
