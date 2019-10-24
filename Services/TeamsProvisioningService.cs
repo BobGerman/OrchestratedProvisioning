@@ -21,18 +21,8 @@ namespace OrchestratedProvisioning.Services
             var reader = new TeamsTemplateReader();
             var templateString = await reader.Read(message);
 
-            var clientId = ConfigurationManager.AppSettings[SettingKey.ClientId];
-            var builder = PublicClientApplicationBuilder.Create(clientId).WithTenantId(ConfigurationManager.AppSettings[SettingKey.TenantId]);
-            var app = builder.Build();
-
-            var userName = ConfigurationManager.AppSettings[SettingKey.ProvisioningUser];
-            var scopes = new string[] { "Group.ReadWrite.All" };
-
-            using (var password = GetSecureString(ConfigurationManager.AppSettings[SettingKey.ProvisioningPassword]))
+            await MSGraphTokenProvider.WithAuthResult(async(AuthenticationResult token) =>
             {
-                var tokenService = new MSGraphTokenService(app);
-                var token = await tokenService.AcquireATokenFromCacheOrUsernamePasswordAsync(scopes, userName, password);
-
                 using (var client = new HttpClient())
                 {
                     client.DefaultRequestHeaders.Authorization =
@@ -79,23 +69,10 @@ namespace OrchestratedProvisioning.Services
                     message.description = teamId;
                 }
 
-            }
-
-
-
-
+            });
             return message;
         }
 
-        private static SecureString GetSecureString(string plaintext)
-        {
-            var result = new SecureString();
-            foreach (var c in plaintext)
-            {
-                result.AppendChar(c);
-            }
-            return result;
-        }
 
     }
 }

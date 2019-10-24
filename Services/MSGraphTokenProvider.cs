@@ -1,34 +1,44 @@
-﻿// From https://github.com/Azure-Samples/active-directory-dotnetcore-console-up-v2/tree/master/up-console
-//
-using Microsoft.Identity.Client;
+﻿using Microsoft.Identity.Client;
+using OrchestratedProvisioning.Model;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Security;
 using System.Threading.Tasks;
 
 namespace OrchestratedProvisioning.Services
 {
-    public class MSGraphTokenService
+    public class MSGraphTokenProvider
     {
-        /// <summary>
-        /// Constructor of a public application leveraging username passwords to acquire a token
-        /// </summary>
-        /// <param name="app">MSAL.NET Public client application</param>
-        /// <param name="httpClient">HttpClient used to call the protected Web API</param>
-        /// <remarks>
-        /// For more information see https://aka.ms/msal-net-up
-        /// </remarks>
-        public MSGraphTokenService(IPublicClientApplication app)
+        // Convenience function to get an AuthenticationResult
+        public delegate Task Callback(AuthenticationResult authResult);
+        public static async Task WithAuthResult(Callback callback)
+        {
+            var clientId = ConfigurationManager.AppSettings[SettingKey.ClientId];
+            var builder = PublicClientApplicationBuilder.Create(clientId).WithTenantId(ConfigurationManager.AppSettings[SettingKey.TenantId]);
+            var app = builder.Build();
+
+            var userName = ConfigurationManager.AppSettings[SettingKey.ProvisioningUser];
+            var scopes = new string[] { "Group.ReadWrite.All" };
+
+            using (var password = GetSecureString(ConfigurationManager.AppSettings[SettingKey.ProvisioningPassword]))
+            {
+                var tokenService = new MSGraphTokenProvider(app);
+                var token = await tokenService.AcquireATokenFromCacheOrUsernamePasswordAsync(scopes, userName, password);
+                await callback(token);
+            }
+        }
+
+        protected IPublicClientApplication App { get; private set; }
+        public MSGraphTokenProvider(IPublicClientApplication app)
         {
             App = app;
         }
-        protected IPublicClientApplication App { get; private set; }
 
-        /// <summary>
-        /// Acquires a token from the token cache, or Username/password
-        /// </summary>
-        /// <returns>An AuthenticationResult if the user successfully signed-in, or otherwise <c>null</c></returns>
+        // MSAL Helper methods from PublicAppUsingUsernamePassword.cs
+        // https://github.com/Azure-Samples/active-directory-dotnetcore-console-up-v2/tree/master/up-console
+
         public async Task<AuthenticationResult> AcquireATokenFromCacheOrUsernamePasswordAsync(IEnumerable<String> scopes, string username, SecureString password)
         {
             AuthenticationResult result = null;
@@ -57,11 +67,6 @@ namespace OrchestratedProvisioning.Services
             return result;
         }
 
-        /// <summary>
-        /// Gets an access token so that the application accesses the web api in the name of the user
-        /// who is signed-in Windows (for a domain joined or AAD joined machine)
-        /// </summary>
-        /// <returns>An authentication result, or null if the user canceled sign-in</returns>
         private async Task<AuthenticationResult> GetTokenForWebApiUsingUsernamePasswordAsync(IEnumerable<string> scopes, string username, SecureString password)
         {
             AuthenticationResult result = null;
@@ -72,6 +77,7 @@ namespace OrchestratedProvisioning.Services
             }
             catch (MsalUiRequiredException ex)
             {
+                #region Helpful comment on possible error conditions
                 // Here are the kind of error messages you could have, and possible mitigations
 
                 // ------------------------------------------------------------------------
@@ -135,9 +141,11 @@ namespace OrchestratedProvisioning.Services
                 // Explanation: wrong username
                 // Mitigation: ask the user to re-enter the username. 
                 // ------------------------------------------------------------------------
+                #endregion
             }
             catch (MsalServiceException ex) when (ex.ErrorCode == "invalid_request")
             {
+                #region Helpful comment on possible error conditions
                 // ------------------------------------------------------------------------
                 // AADSTS90010: The grant type is not supported over the /common or /consumers endpoints. Please use the /organizations or tenant-specific endpoint.
                 // you used common.
@@ -145,10 +153,12 @@ namespace OrchestratedProvisioning.Services
                 // "Tenant": property in the appsettings.json to be a GUID (tenant Id), or domain name (contoso.com) if such a domain is registered with your tenant
                 // or "organizations", if you want this application to sign-in users in any Work and School accounts.
                 // ------------------------------------------------------------------------
-
+                #endregion
             }
             catch (MsalServiceException ex) when (ex.ErrorCode == "unauthorized_client")
             {
+                #region Helpful comment on possible error conditions
+
                 // ------------------------------------------------------------------------
                 // AADSTS700016: Application with identifier '{clientId}' was not found in the directory '{domain}'.
                 // This can happen if the application has not been installed by the administrator of the tenant or consented to by any user in the tenant. 
@@ -156,46 +166,70 @@ namespace OrchestratedProvisioning.Services
                 // Cause: The clientId in the appsettings.json might be wrong
                 // Mitigation: check the clientId and the app registration
                 // ------------------------------------------------------------------------
+                #endregion
             }
             catch (MsalServiceException ex) when (ex.ErrorCode == "invalid_client")
             {
+                #region Helpful comment on possible error conditions
+
                 // ------------------------------------------------------------------------
                 // AADSTS70002: The request body must contain the following parameter: 'client_secret or client_assertion'.
                 // Explanation: this can happen if your application was not registered as a public client application in Azure AD 
                 // Mitigation: in the Azure portal, edit the manifest for your application and set the `allowPublicClient` to `true` 
                 // ------------------------------------------------------------------------
+                #endregion
             }
 
 
             catch (MsalClientException ex) when (ex.ErrorCode == "unknown_user_type")
             {
+                #region Helpful comment on possible error conditions
+
                 // Message = "Unsupported User Type 'Unknown'. Please see https://aka.ms/msal-net-up"
                 // The user is not recognized as a managed user, or a federated user. Azure AD was not
                 // able to identify the IdP that needs to process the user
+                #endregion
                 throw new ArgumentException("U/P: Wrong username", ex);
             }
             catch (MsalClientException ex) when (ex.ErrorCode == "user_realm_discovery_failed")
             {
+                #region Helpful comment on possible error conditions
                 // The user is not recognized as a managed user, or a federated user. Azure AD was not
                 // able to identify the IdP that needs to process the user. That's for instance the case
                 // if you use a phone number
+                #endregion
                 throw new ArgumentException("U/P: Wrong username", ex);
             }
             catch (MsalClientException ex) when (ex.ErrorCode == "unknown_user")
             {
+                #region Helpful comment on possible error conditions
                 // the username was probably empty
                 // ex.Message = "Could not identify the user logged into the OS. See http://aka.ms/msal-net-iwa for details."
+                #endregion
                 throw new ArgumentException("U/P: Wrong username", ex);
             }
             catch (MsalClientException ex) when (ex.ErrorCode == "parsing_wstrust_response_failed")
             {
+                #region Helpful comment on possible error conditions
                 // ------------------------------------------------------------------------
                 // In the case of a Federated user (that is owned by a federated IdP, as opposed to a managed user owned in an Azure AD tenant) 
                 // ID3242: The security token could not be authenticated or authorized.
                 // The user does not exist or has entered the wrong password
                 // ------------------------------------------------------------------------
+                #endregion
             }
             return result;
         }
+
+        private static SecureString GetSecureString(string plaintext)
+        {
+            var result = new SecureString();
+            foreach (var c in plaintext)
+            {
+                result.AppendChar(c);
+            }
+            return result;
+        }
+
     }
 }
