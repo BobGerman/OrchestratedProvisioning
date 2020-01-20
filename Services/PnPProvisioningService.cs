@@ -31,7 +31,7 @@ namespace OrchestratedProvisioning.Services
 
                 await ApplyProvisioningTemplateAsync(message, newSiteUrl, provisioningTemplate);
 
-                message.resultCode = QueueMessage.ResultCode.success;
+                message.resultCode = QueueMessage.ResultCode.succeeded;
             }
             catch (Exception ex)
             {
@@ -61,7 +61,7 @@ namespace OrchestratedProvisioning.Services
 
                 await ApplyProvisioningTemplateAsync(message, siteUrl, provisioningTemplate);
 
-                message.resultCode = QueueMessage.ResultCode.success;
+                message.resultCode = QueueMessage.ResultCode.succeeded;
             }
             catch (Exception ex)
             {

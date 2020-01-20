@@ -26,9 +26,10 @@ namespace OrchestratedProvisioning.Services
             }
         }
 
-        public async Task<JObject> PostTeamsAsyncOperation(string token, string url, string stringContent)
+        public async Task<(JObject, QueueMessage.ResultCode)> PostTeamsAsyncOperation(string token, string url, string stringContent)
         {
             JObject result = null;
+            var done = false;
 
             using (var client = new HttpClient())
             {
@@ -42,7 +43,6 @@ namespace OrchestratedProvisioning.Services
                 await EnsureSuccess(response);
 
                 var operationUrl = "https://graph.microsoft.com/beta" + response.Headers.Location;
-                var done = false;
                 var retriesRemaining = Constants.RetryMax;
                 while (!done && retriesRemaining-- > 0)
                 {
@@ -52,7 +52,7 @@ namespace OrchestratedProvisioning.Services
                 }
             }
 
-            return result;
+            return (result, done ? QueueMessage.ResultCode.succeeded : QueueMessage.ResultCode.incomplete);
         }
 
         // If the response isn't successful, get the message from Graph and throw an excaption

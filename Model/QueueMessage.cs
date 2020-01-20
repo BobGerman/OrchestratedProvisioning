@@ -14,7 +14,7 @@ namespace OrchestratedProvisioning.Model
 
         public enum ResultCode
         {
-            unknown, success, warning, failure
+            unknown, succeeded, warning, failure, incomplete
         }
 
         [JsonConverter(typeof(StringEnumConverter))]
@@ -30,6 +30,7 @@ namespace OrchestratedProvisioning.Model
         [JsonConverter(typeof(StringEnumConverter))]
         public ResultCode resultCode { get; set; }
         public string resultMessage { get; set; }
+        public string resultValue { get; set; }
 
         public string Serialize()
         {
