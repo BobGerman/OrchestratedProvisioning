@@ -22,7 +22,7 @@ namespace OrchestratedProvisioning.Services
                 responseJson = await graphClient.PostTeamsAsyncOperation(authResult.AccessToken, "https://graph.microsoft.com/beta/teams", templateString);
 
                 var teamId = responseJson["id"]?.ToString();
-                message.description = teamId;
+                message.groupId = teamId;
             });
             return message;
         }

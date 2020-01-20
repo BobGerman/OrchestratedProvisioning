@@ -26,6 +26,7 @@ namespace OrchestratedProvisioning.Model
         public string description { get; set; }
         public string owner { get; set; }
         public bool isPublic { get; set; }
+        public string groupId { get; set; }
         [JsonConverter(typeof(StringEnumConverter))]
         public ResultCode resultCode { get; set; }
         public string resultMessage { get; set; }

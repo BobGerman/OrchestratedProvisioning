@@ -3,6 +3,7 @@ using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using OrchestratedProvisioning.Model;
 
 namespace OrchestratedProvisioning.Services
 {
@@ -42,9 +43,10 @@ namespace OrchestratedProvisioning.Services
 
                 var operationUrl = "https://graph.microsoft.com/beta" + response.Headers.Location;
                 var done = false;
-                while (!done)
+                var retriesRemaining = Constants.RetryMax;
+                while (!done && retriesRemaining-- > 0)
                 {
-                    await Task.Delay(5000);
+                    await Task.Delay(Constants.RetryInterval);
                     result = await Get(token, operationUrl);
                     done = result["status"]?.ToString() == "succeeded";
                 }
